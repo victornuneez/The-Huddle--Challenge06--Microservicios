@@ -1,0 +1,139 @@
+==============================
+MICROSERVICIO DE AUTENTICACIÓN
+==============================
+
+1️⃣ Registro de usuario
+Endpoint: POST /register
+Body JSON:
+{
+  "username": "usuario1",
+  "password": "miPassword123"
+}
+Casos:
+- Registro normal (usuario nuevo)
+- Registro duplicado (mismo username)
+- Registro con username vacío o contraseña vacía
+
+
+2️⃣ Login de usuario
+Endpoint: POST /login
+Body JSON:
+{
+  "username": "usuario1",
+  "password": "miPassword123"
+}
+Casos:
+- Login correcto
+- Login con contraseña incorrecta
+- Login con usuario inexistente
+
+
+3️⃣ Validación de token
+Endpoint: POST /validate
+Body JSON:
+{
+  "token": "TOKEN_OBTENIDO_DEL_LOGIN"
+}
+Casos:
+- Token válido
+- Token modificado (inválido)
+- Token vacío o no enviado
+
+
+==========================
+MICROSERVICIO DE TAREAS
+==========================
+
+Todos los endpoints requieren header:
+Authorization: Bearer TOKEN_OBTENIDO_DEL_LOGIN
+
+4️⃣ Crear tarea
+Endpoint: POST /task
+Body JSON:
+{
+  "tarea": "Comprar leche"
+}
+Casos:
+- Crear tarea normal
+- Crear tarea vacía
+- Crear tarea sin token o token inválido
+
+
+5️⃣ Listar tareas pendientes
+Endpoint: GET /tasks/pendientes
+Header: Authorization: Bearer TOKEN
+Casos:
+- Usuario con tareas
+- Usuario sin tareas
+- Token inválido o no enviado
+
+
+6️⃣ Marcar tarea como completada
+Endpoint: PUT /task/{task_id}
+Header: Authorization: Bearer TOKEN
+Casos:
+- Marcar tarea existente
+- Marcar tarea inexistente
+- Marcar tarea que no pertenece al usuario
+- Token inválido o no enviado
+
+
+7️⃣ Eliminar tarea
+Endpoint: DELETE /task/{task_id}
+Header: Authorization: Bearer TOKEN
+Casos:
+- Eliminar tarea existente
+- Eliminar tarea inexistente
+- Eliminar tarea que no pertenece al usuario
+- Token inválido o no enviado
+
+==============================
+MICROSERVICIO DE RECORDATORIOS
+==============================
+
+Todos los endpoints requieren header:
+Authorization: Bearer TOKEN_OBTENIDO_DEL_LOGIN
+
+8️⃣ Crear recordatorio
+Endpoint: POST /recordatorios
+Body JSON:
+{
+  "mensaje": "Revisar correo"
+}
+Casos:
+- Crear recordatorio normal
+- Crear recordatorio vacío
+- Crear recordatorio sin token o token inválido
+
+9️⃣ Listar recordatorios
+Endpoint: GET /recordatorios
+Header: Authorization: Bearer TOKEN
+Casos:
+- Usuario con recordatorios
+- Usuario sin recordatorios
+- Token inválido o no enviado
+
+10️⃣ Eliminar recordatorio
+Endpoint: DELETE /recordatorios/{recordatorio_id}
+Header: Authorization: Bearer TOKEN
+Casos:
+- Eliminar recordatorio existente
+- Eliminar recordatorio inexistente
+- Eliminar recordatorio de otro usuario
+- Token inválido o no enviado
+
+==========================
+FLUJO COMPLETO SUGERIDO
+==========================
+1. Registrar usuario
+2. Intentar registro duplicado
+3. Login correcto e incorrecto
+4. Validar token correcto e incorrecto
+5. Crear varias tareas
+6. Listar tareas pendientes
+7. Marcar tareas completadas
+8. Eliminar tareas
+9. Crear recordatorios
+10. Listar recordatorios
+11. Eliminar recordatorios
+12. Verificar pendientes finales de tareas y recordatorios
