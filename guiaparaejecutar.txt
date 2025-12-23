@@ -1,0 +1,21 @@
+Clonar el repositorio:
+    - git clone <URL_DE_TU_REPOSITORIO>
+    - cd <NOMBRE_DEL_REPOSITORIO>
+
+Crear un entorno virtual:
+    - python -m venv venv
+
+Activar el entorno virtual
+Windows (PowerShell):
+    - .\venv\Scripts\Activate.ps1
+Windows (CMD):
+    - .\venv\Scripts\activate.bat
+Mac/Linux:
+    - source venv/bin/activate
+
+Instalar dependencias:
+    - pip install -r requirements.txt
+
+Configurar variables de entorno
+Crear un archivo .env en la raíz del proyecto(Crea tu propia clave secreta):
+    - JWT_CLAVE_SECRETA=miclavesecre
