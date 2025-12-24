@@ -10,7 +10,7 @@ from datetime import datetime
 DB = "tasks.db"
 
 # Funcion que crea la base de datos.
-def crear_tabla():
+def iniciar_bd():
     with sqlite3.connect(DB, timeout=5) as conexion:
         cursor = conexion.cursor()
     

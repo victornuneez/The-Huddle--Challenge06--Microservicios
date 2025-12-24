@@ -13,7 +13,7 @@ import database
 app = Flask(__name__)
 
 # Inicializamos la base de datos.
-database.crear_tabla()
+database.iniciar_bd()
 
 # Definimos la URL con el ENDPOINT donde queremos hacer una peticion.
 URL_SERVICIO_AUT = "http://127.0.0.1:5000/validate"
@@ -70,8 +70,6 @@ def crear_tarea():
 
         if not tarea:
             return jsonify({"Error": "Tarea requerido"}), 400
-        
-        print("user_id desde token:", user_id)
         
         # Agregamos a la base de datos el user_id y la tarea.
         database.agregar_tarea(user_id, tarea)
@@ -164,4 +162,16 @@ def eliminar_tarea(task_id):
 
     
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5001, debug=True)  # Task Service
+
+    print("\n" + "="*60)
+    print("Microservicio de Tareas")
+    print("="*60)
+    print("IP: 127.0.0.1")
+    print("Puerto: 5001")
+    print("\nENDPOINTS DISPONIBLES:")
+    print("POST  /tasks  -> Crea y agrega tareas")
+    print("GET /tasks -> Recibe filtros y devuelve las tareas solicitadas")
+    print("PUT /tasks/<int:task_id>/complete -> Actualiza una tarea como completada")
+    print("DELETE /tasks/<int:task_id> -> Elimina tareas\n")
+
+    app.run(host="127.0.0.1", port=5001, debug=True)

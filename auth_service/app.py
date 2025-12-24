@@ -171,4 +171,15 @@ def validar_sesion():
 
 # Ejecutamos la app
 if __name__ == "__main__":
+
+    print("\n" + "="*60)
+    print("Microservicio de Autenticacion")
+    print("="*60)
+    print("IP: 127.0.0.1")
+    print("Puerto: 5000")
+    print("\nENDPOINTS DISPONIBLES:")
+    print("POST  /register  -> Registra al usuario")
+    print("POST /login -> Inicio de sesion del usuario")
+    print("POST /validate -> Valida el token del usuario\n")
+
     app.run(host="127.0.0.1", port=5000, debug=True) 
