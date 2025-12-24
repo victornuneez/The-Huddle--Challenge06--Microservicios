@@ -8,6 +8,22 @@ from flask import Flask, request, jsonify
 import requests
 import database
 
+# Importamos desde el archivo circuit_breaker la clase Circuit Breaker.
+from circuit_breaker import CircuitBreaker  
+
+# Circuit Breaker que protege las peticiones al microservicio de Autenticación.
+# Si el servicio falla 3 veces seguidas, el circuito se abre y deja de enviar peticiones al microservicio de Autenticacion.
+# Luego de 10 segundos, permite una petición de prueba para ver si el microservicio se recuperó.
+cb_autenticacion = CircuitBreaker(max_fallos=3, 
+                                tiempo_espera=10, 
+                                nombre="Microservicio Autenticacion") 
+
+# Circuit Breaker que protege las peticiones al microservicio de Tareas.
+cb_tarea = CircuitBreaker(max_fallos=3, 
+                        tiempo_espera=10, 
+                        nombre="Microservicio Tareas") 
+
+
 # Creamos el servidor Flask
 app = Flask(__name__)
 
@@ -43,11 +59,12 @@ def generar_recordatorio():
         # Limpiamos el token y obtenemos solo el valor del token
         token = header_autorizacion.replace("Bearer ", "")
 
-        # Hacemos una peticion al microservicio de autenticacion, para validar el token recibido.(ENDPOINT/VALIDATE "POST")
-        respuesta = requests.post(URL_SERVICE_AUTH, json={"token": token})
-
-        if respuesta.status_code != 200:
-            return jsonify({"Error": "Token invalido"}), 401
+        # Pedimos permiso al circuit breaker para enviar peticiones al microservicio de Autenticacion.
+        respuesta = cb_autenticacion.ejecutar(lambda: requests.post(URL_SERVICE_AUTH, json={"token": token}))
+        
+        # Verificamos si la llamada se pudo ejecutar y tuvo éxito
+        if not respuesta or respuesta.status_code != 200:
+            return jsonify({"Error": "Servicio de tareas no disponible"}), 503 # Es un problema entre servicios
         
         # Convertimos la respuesta que en un diccionario.
         datos_autenticacion = respuesta.json()
@@ -60,12 +77,13 @@ def generar_recordatorio():
         # OBTENEMOS LAS TAREAS DE ESE USUARIO
         # -----------------------------------
 
-        # Hacemos una peticion al microservicio de tareas, para que nos devuelva las tareas del usuario(user_id).
-        tareas_respuesta = requests.get(URL_SERVICE_TASK, headers={"Authorization": f"Bearer {token}"})
-
-        if tareas_respuesta.status_code != 200:
-            return jsonify({"Error": "No se pudieron obtener las tareas"}), 500
+        # Pedimos permiso al circuit breaker para enviar peticiones al microservicio de Tareas.
+        tareas_respuesta = cb_tarea.ejecutar(lambda: requests.get(URL_SERVICE_TASK, headers={"Authorization": f"Bearer {token}"}))
         
+        # Verificamos si la llamada se pudo ejecutar y tuvo éxito
+        if not tareas_respuesta or tareas_respuesta.status_code != 200:
+            return jsonify({"Error": "Servicio de tareas no disponible"}), 503
+
         # Convertimos la respuesta del microservicio de tareas en una lista de diccionarios.
         datos = tareas_respuesta.json()  
         tareas = datos.get("tareas", []) # Tomamos la lista de tareas del diccionario que devolvio el microservicio de tareas.(Si la clave tareas no existe devolvemos una lista vacia)
@@ -103,19 +121,26 @@ def tareas_pendientes():
     token = auth_header.replace("Bearer ", "")
 
     # Hacemos una peticion al microservicio de autenticacion para validar el token recibido.(ENDPOINT/VALIDATE "POST")
-    respuesta = requests.post(URL_SERVICE_AUTH, json={"token": token})
-    if respuesta.status_code != 200:
-        return jsonify({"error": "Token inválido"}), 401
+    respuesta = cb_autenticacion.ejecutar(lambda: requests.post(URL_SERVICE_AUTH, json={"token": token}))
+    
+    # Verificamos si la llamada se pudo ejecutar y tuvo éxito
+    if not respuesta or respuesta.status_code != 200:
+        return jsonify({"Error": "Servicio de tareas no disponible"}), 503
 
     # Convertimos la respuesta del microservicio de autenticacion en un diccionario.
-    Datos_autenticacion = respuesta.json()
-    user_id = Datos_autenticacion.get("user_id") # Obtenemos el user_id
+    datos_autenticacion = respuesta.json()
+    user_id = datos_autenticacion.get("user_id") # Obtenemos el user_id
+
+    if not user_id:
+        return jsonify({"error": "Usuario no válido"}), 401
 
     # Hacemos una peticion al Microservicio de Tareas para obtener las tareas del usuario.
-    tareas_respuesta = requests.get(URL_SERVICE_TASK, headers={"Authorization": f"Bearer {token}"})
+    # Obtener tareas con Circuit Breaker
+    tareas_respuesta = cb_tarea.ejecutar(lambda: requests.get(URL_SERVICE_TASK, headers={"Authorization": f"Bearer {token}"}))
     
-    if tareas_respuesta.status_code != 200:
-        return jsonify({"error": "No se pudieron obtener las tareas"}), 500
+    # Verificamos si la llamada se pudo ejecutar y tuvo éxito
+    if not tareas_respuesta or tareas_respuesta.status_code != 200:
+        return jsonify({"Error": "Servicio de tareas no disponible"}), 503
 
     # Convertimos la respuesta JSON a un diccionario, obtenemos solo la lista de tareas.
     tareas = tareas_respuesta.json().get("tareas", [])
@@ -125,6 +150,15 @@ def tareas_pendientes():
     return jsonify({"tareas_pendientes": pendientes}), 200
 
 
-
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5002, debug=True)  
+
+    print("\n" + "="*60)
+    print("Microservicio de Recordatorios - CON Circuit Breaker")
+    print("="*60)
+    print("IP: 127.0.0.1")
+    print("Puerto: 5002")
+    print("\nENDPOINTS DISPONIBLES:")
+    print("POST  /recordatorios  -> Notifica al usuario cuantas tareas pendientes tiene o si no tiene tareas pendientes")
+    print("GET /tasks/pendientes -> Devuelve al usuario las tareas que tiene pendiente\n")
+    
+    app.run(host="127.0.0.1", port=5002, debug=True)
