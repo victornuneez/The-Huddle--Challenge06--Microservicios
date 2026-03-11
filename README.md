@@ -1,65 +1,62 @@
-Ecosistema de Microservicios: Task Manager Pro
+# Sistemas de Logging y Ecosistema de Microservicios
 
-Este proyecto es una implementación avanzada de Arquitectura de Microservicios que utiliza un patrón de comunicación inter-servicio. Incluye seguridad basada en tokens (JWT), persistencia de datos independiente y tolerancia a fallos mediante el patrón Circuit Breaker.
+Este repositorio incluye dos proyectos completos:
 
-🏗️ Arquitectura del Sistema
+1. **Sistema de Logging Distribuido (SLD)**: centralización de logs de múltiples microservicios.  
+2. **Task Manager Pro**: ecosistema de microservicios con autenticación JWT, Circuit Breaker y bases de datos independientes.  
 
-El sistema se compone de tres microservicios que trabajan de forma coordinada:
+---
 
-1. Auth Service (Puerto 5000)
+## Sistema de Logging Distribuido (SLD)
 
-Es el "Portero" del sistema.
+Este proyecto es una solución robusta y modular para la centralización de registros (logs) procedentes de múltiples microservicios. Utiliza una arquitectura Cliente-Servidor sobre HTTP para recolectar, validar y almacenar eventos de sistema en tiempo real.
 
-Responsabilidad: Registro de usuarios, hashing de contraseñas con werkzeug y generación/validación de JSON Web Tokens (JWT).
+### 📁 Estructura del Proyecto
 
-Seguridad: Utiliza variables de entorno (.env) para proteger la clave secreta.
+#### `/servidor`
+- **app.py**: Servidor Flask y Endpoints.  
+- **basededatos.py**: Gestión de SQLite3.  
+- **tokensvalidos.py**: Sistema de seguridad y autenticación.  
 
-2. Task Service (Puerto 5001)
+#### `/servicios`
+- **auth_service.py**: Gestión de sesiones y accesos.  
+- **email_service.py**: Notificaciones y eventos SMTP.  
+- **payment_service.py**: Transacciones y estados financieros.  
 
-Es el "Gestor de Contenido".
+### 🚀 Funcionalidades Principales
 
-Responsabilidad: Permite crear, listar, marcar como completadas y eliminar tareas.
+#### 1. Servidor Central de Logging
+- **Autenticación**: Solo acepta logs de servicios con un Token de Autorización válido (Header `Authorization`).  
+- **Procesamiento Inteligente**: Puede recibir un solo log o un batch de logs en una sola petición.  
+- **Persistencia**: Almacenamiento automático en SQLite con registro de `received_at`.  
+- **Consulta Avanzada**: Endpoint GET con filtros por rango de fechas.  
 
-Validación: Antes de procesar cualquier acción, consulta internamente al Auth Service para confirmar que el token del usuario es válido.
+#### 2. Microservicios (Simuladores)
+- **Generación Aleatoria**: Eventos (`INFO`, `WARNING`, `ERROR`, `CRITICAL`) con mensajes específicos.  
+- **Independencia**: Cada servicio corre en su propio proceso e intervalo.  
+- **Resiliencia**: Manejo de errores y timeouts al conectar con el servidor.  
 
-3. Notification Service (Puerto 5002)
+### 🛠️ Tecnologías Utilizadas
+- **Python 3**  
+- **Flask**  
+- **SQLite3**  
+- **Requests**  
+- **JSON**  
 
-Es el "Orquestador Inteligente".
+### 📊 Flujo de Datos
+1. Un servicio genera un evento (ej: `"Pago rechazado"`).  
+2. Lo empaqueta en un JSON con su Token y lo envía vía POST a `/logs`.  
+3. El Servidor valida el token.  
+4. Si es válido, guarda el log en la base de datos.  
+5. Un administrador puede consultar los logs vía GET desde cualquier navegador o cliente API.  
 
-Responsabilidad: Genera recordatorios basados en las tareas pendientes del usuario.
+### 🚦 Cómo Ejecutar el Proyecto
+```bash
+# Iniciar servidor
+cd servidor
+python app.py
 
-Resiliencia: Utiliza un Circuit Breaker propio para monitorear la salud de los otros servicios. Si el Auth Service o el Task Service fallan, este servicio corta la comunicación temporalmente para evitar colapsar el sistema.
-
-🛡️ El Circuit Breaker (Tolerancia a Fallos)
-
-Es la pieza clave de este proyecto. Funciona como un interruptor de luz con tres estados:
-
-🟢 CLOSED (Cerrado): Todo funciona bien. Las peticiones fluyen normalmente.
-
-🔴 OPEN (Abierto): El servicio externo falló repetidamente. El sistema bloquea las peticiones automáticamente durante un tiempo (ej: 10-20 segundos) para dejar que el servicio se recupere.
-
-🟡 HALF_OPEN (Semi-Abierto): Se realiza una petición de prueba. Si tiene éxito, vuelve a CLOSED; si falla, vuelve a OPEN.
-
-📂 Estructura de Datos (SQLite)
-
-Cada servicio tiene su propia base de datos, cumpliendo con el principio de Database per Service:
-
-auth_service.db: Tabla Usuarios (id, username, password_hash, fecha).
-
-tasks.db: Tabla Tareas (id, user_id, tarea, completada, fechas).
-
-notificacion.db: Tabla Recordatorios (id, user_id, mensaje, fecha).
-
-🚀 Cómo ponerlo en marcha
-
-Instalar dependencias: pip install flask requests pyjwt python-dotenv werkzeug
-
-Configurar .env: Crear un archivo .env en auth_service/ con JWT_CLAVE_SECRETA=tu_clave_super_secreta.
-
-Ejecutar en orden:
-
-Terminal 1: python auth_service/app.py
-
-Terminal 2: python task_service/app.py
-
-Terminal 3: python notification_service/app.py
+# Iniciar servicios (en terminales separadas)
+python servicios/auth_service.py
+python servicios/email_service.py
+python servicios/payment_service.py
